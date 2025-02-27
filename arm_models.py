@@ -625,12 +625,13 @@ class FiveDOFRobot:
         ########################################
 
         # insert your code here
+        z_vec = np.array([0, 0, 1])     # this is the z-axis in ref. to Frame 0
+
 
         ########################################
 
         # Recompute robot points based on updated joint angles
         self.calc_forward_kinematics(self.theta, radians=True)
-
 
     def calc_robot_points(self):
         """ Calculates the main arm points using the current joint angles """
@@ -662,4 +663,16 @@ class FiveDOFRobot:
         self.EE = [self.ee.x, self.ee.y, self.ee.z]
         self.EE_axes = np.array([self.T_ee[:3, i] * 0.075 + self.points[-1][:3] for i in range(3)])
 
+
+    def update_DH_table(self):
+        # updates the DH table to account for current
+        # theta positions on robot
+        # returns nothing
+
+        # construct DH table according to hand calculations
+        self.DH[0, :] = [self.theta[0],      PI/2, 0,       self.l1]
+        self.DH[1, :] = [self.theta[1]+PI/2, PI,   self.l2, 0]
+        self.DH[2, :] = [self.theta[2],      PI,   self.l3, 0]
+        self.DH[3, :] = [self.theta[3]+PI/2, PI/2, 0,       0]
+        self.DH[4, :] = [self.theta[4],      0,    0,       self.l4 + self.l5]
 
