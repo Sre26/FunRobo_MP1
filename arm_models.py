@@ -623,9 +623,21 @@ class FiveDOFRobot:
             vel: Desired end-effector velocity (3x1 vector).
         """
         ########################################
-
         # insert your code here
-        z_vec = np.array([0, 0, 1])     # this is the z-axis in ref. to Frame 0
+
+        # create empty array to be filled with z vectors (all rotated relative to Frame 0 z vector)
+        z_vec = np.empty(self.num_dof+1)    # create empty array w/ #DOF+1 length, will hold all z vectors
+        z_0 = np.array([0, 0, 1])     # this is the z-axis in ref. to Frame 0
+        z_vec[0] = z_0      # set the first z vector to be z_0 as defined above
+        
+
+        # update DH table to use current angles
+        self.update_DH_table()
+
+        # calculate my zvectors
+        for i in range(self.num_dof):   # kinda scuffed. I want to start at i=1 so im just gonna do i+1. revisit
+            rotation_matrix = 
+            z_vec[i+1] = np.matmul(z_vec[i], ) 
 
 
         ########################################
@@ -676,3 +688,5 @@ class FiveDOFRobot:
         self.DH[3, :] = [self.theta[3]+PI/2, PI/2, 0,       0]
         self.DH[4, :] = [self.theta[4],      0,    0,       self.l4 + self.l5]
 
+    def HTM_from_DH_row(self, some_index):
+        
