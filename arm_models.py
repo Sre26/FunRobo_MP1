@@ -2,6 +2,7 @@ from math import sin, cos
 import numpy as np
 from matplotlib.figure import Figure
 from helper_fcns.utils import EndEffector, rotm_to_euler
+from helper_fcns.utils import dh_to_matrix
 
 PI = 3.1415926535897932384
 np.set_printoptions(precision=3)
@@ -625,8 +626,8 @@ class FiveDOFRobot:
         ########################################
         # insert your code here
 
-        # create empty array to be filled with z vectors (all rotated relative to Frame 0 z vector)
-        z_vec = np.empty(self.num_dof+1)    # create empty array w/ #DOF+1 length, will hold all z vectors
+        # create zeros array to be filled with z vectors (all rotated relative to Frame 0 z vector)
+        z_vec = np.zeros(self.num_dof+1)    # create zeros array w/ #DOF+1 length, will hold all z vectors
         z_0 = np.array([0, 0, 1])     # this is the z-axis in ref. to Frame 0
         z_vec[0] = z_0      # set the first z vector to be z_0 as defined above
         
@@ -636,9 +637,15 @@ class FiveDOFRobot:
 
         # calculate my zvectors
         for i in range(self.num_dof):   # kinda scuffed. I want to start at i=1 so im just gonna do i+1. revisit
-            rotation_matrix = 
-            z_vec[i+1] = np.matmul(z_vec[i], ) 
+            # make HTM matrix from current row of interest
+            htm =  dh_to_matrix(self.DH[i, :])
+            # extract rotation matrix (top left 3x3) from the HTM
+            rotation_matrix = htm[[0,2], [0,2]]
 
+            # calc next z vector as the matrix multiplication of z_i and R_(i to i+1)
+            z_vec[i+1] = np.matmul(z_vec[i], rotation_matrix)
+
+        # next steps: make the r vectors, then calculate the individual Jacobian terms
 
         ########################################
 
@@ -682,11 +689,9 @@ class FiveDOFRobot:
         # returns nothing
 
         # construct DH table according to hand calculations
+        # columns are: theta, alpha, a, d
         self.DH[0, :] = [self.theta[0],      PI/2, 0,       self.l1]
         self.DH[1, :] = [self.theta[1]+PI/2, PI,   self.l2, 0]
         self.DH[2, :] = [self.theta[2],      PI,   self.l3, 0]
         self.DH[3, :] = [self.theta[3]+PI/2, PI/2, 0,       0]
         self.DH[4, :] = [self.theta[4],      0,    0,       self.l4 + self.l5]
-
-    def HTM_from_DH_row(self, some_index):
-        
