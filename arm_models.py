@@ -564,6 +564,24 @@ class FiveDOFRobot:
         ########################################
 
         # insert your code here
+        # check that theta values are in radians
+
+         # set values for the hand-calc DH table
+        self.DH[0, :] = [self.theta[0],      PI/2, 0,       self.l1]
+        self.DH[1, :] = [self.theta[1]+PI/2, PI,   self.l2, 0]
+        self.DH[2, :] = [self.theta[2],      PI,   self.l3, 0]
+        self.DH[3, :] = [self.theta[3]+PI/2, PI/2, 0,       0]
+        self.DH[4, :] = [self.theta[4],      0,    0,       self.l4 + self.l5]
+
+        # create transformation matrices from DH table
+        arr = self.DH[i,:]
+        arr.tolist()
+
+        for i in range(6):
+            arr = self.DH[i,:]
+            self.T[i, :, :] = self.dh_to_matrix(arr.tolist())
+
+        print(self.T)
 
         ########################################
         
