@@ -565,24 +565,25 @@ class FiveDOFRobot:
         ########################################
 
         # insert your code here
+
         # check that theta values are in radians
+        if radians == False:
+            # if values arent in radians, then convert
+            theta_use = theta * (PI/180)
+        else:
+            # if values are in radians, then use as is
+            theta_use = theta
 
-         # set values for the hand-calc DH table
-        self.DH[0, :] = [self.theta[0],      PI/2, 0,       self.l1]
-        self.DH[1, :] = [self.theta[1]+PI/2, PI,   self.l2, 0]
-        self.DH[2, :] = [self.theta[2],      PI,   self.l3, 0]
-        self.DH[3, :] = [self.theta[3]+PI/2, PI/2, 0,       0]
-        self.DH[4, :] = [self.theta[4],      0,    0,       self.l4 + self.l5]
+        # create DH table from the thetas (in radians) passed
+        # as an argument
+        DH_table = self.DH_from_theta(theta_use) # might have to pass self too?
+        htm_total = np.eye(4)
 
-        # create transformation matrices from DH table
-        arr = self.DH[i,:]
-        arr.tolist()
+        for i in range(self.num_dof):
+            next_htm = dh_to_matrix(DH_table[i, :])
+            htm_total = np.matmul(htm_total, next_htm)
 
-        for i in range(6):
-            arr = self.DH[i,:]
-            self.T[i, :, :] = self.dh_to_matrix(arr.tolist())
-
-        print(self.T)
+        # well i found the cumulative H matrix 0H5, what do i do with it?????
 
         ########################################
         
@@ -627,25 +628,65 @@ class FiveDOFRobot:
         # insert your code here
 
         # create zeros array to be filled with z vectors (all rotated relative to Frame 0 z vector)
-        z_vec = np.zeros(self.num_dof+1)    # create zeros array w/ #DOF+1 length, will hold all z vectors
+        z_vec = np.zeros((self.num_dof+1, 3))    # create zeros array w/ #DOF+1 length, will hold all z vectors
         z_0 = np.array([0, 0, 1])     # this is the z-axis in ref. to Frame 0
-        z_vec[0] = z_0      # set the first z vector to be z_0 as defined above
-        
+        z_vec[0, :] = z_0      # set the first z vector to be z_0 as defined above
 
         # update DH table to use current angles
         self.update_DH_table()
-
+        
         # calculate my zvectors
-        for i in range(self.num_dof):   # kinda scuffed. I want to start at i=1 so im just gonna do i+1. revisit
+        for i in range(self.num_dof):  
             # make HTM matrix from current row of interest
             htm =  dh_to_matrix(self.DH[i, :])
             # extract rotation matrix (top left 3x3) from the HTM
-            rotation_matrix = htm[[0,2], [0,2]]
-
+            rotation_matrix = htm[0:3, 0:3]
             # calc next z vector as the matrix multiplication of z_i and R_(i to i+1)
-            z_vec[i+1] = np.matmul(z_vec[i], rotation_matrix)
+            # is this right? the order?
+            z_vec[i+1, :] = np.matmul(z_vec[i], rotation_matrix)
+        
+        # create cumulative htm matrices (ie 0H1, 0H2, 0H3, ... 0H5)
+        cum_htm = np.zeros((self.num_dof, 4, 4))
+        cum_htm[0, :, :] = dh_to_matrix(self.DH[0, :])
+        for j in range(self.num_dof-1):
+            # is the order of this matrix multiplication correct? check above too ~647
+            prev_cum_htm = cum_htm[j, :, :]     # take prev cum_htm (ex 0H2)
+            next_htm = dh_to_matrix(self.DH[j+1, :])           # get next non-cum htm (ex 2H3) from DH table
+            
+            # calculate the next cum_htm by matrix multiplication  (ex 0H2 * 2H3 = 0H3) 
+            cum_htm[j+1, :, :] = np.matmul(prev_cum_htm, next_htm)
+        
+        # radius from base (Frame 0) to EE (Frame 5 in this case)
+        r_EE = cum_htm[-1, 0:3, 3]
 
-        # next steps: make the r vectors, then calculate the individual Jacobian terms
+        # make an array of r_vectors
+        # zero array to store distance (3x1 vector) for each cumulative radius (ie 0-5, 1-5, ...) 
+        r_vec = np.zeros((3, self.num_dof))
+
+        r_vec[:, 0] = r_EE
+        for k in range(self.num_dof-1):
+            # compute new r vector (ex r1-5, r2-5, ...) as r_EE - r0-i 
+            # extract r0-i from the fourth column of the cumulative htm matrices
+            # be mindful that r_vec[0] = r_EE = r0-5, while cum_htm[0] = H0-1 -> r0-1 not r0-0
+            # so r_vec[0] - cum_htm[0, 0:2, 3] = r0-5 - r0-1 = r1-5 which is stored in r_vec[1]
+            r_vec[:, k+1] = r_EE - cum_htm[k, 0:3, 3]
+
+        print("well it ran so it can't be that fucked up")
+        # calculate the Jacobian terms
+
+        # container for the linear velocity component of the Jacobian 
+        J_v = np.zeros((3, self.num_dof))
+
+        for i1 in range(self.num_dof):
+            # column of J = z x r
+            J_v[:, i1] = np.cross(z_vec[i1, :], r_vec[:, i1])
+
+        # what do i do neeexttttttttttttttttttttttt
+        # i calculated the jacobian
+        # but really this function should just be
+        # theta_dot = inverse jacobian * vel (fron Args)
+        # calc angular velocities for joints
+
 
         ########################################
 
@@ -681,17 +722,37 @@ class FiveDOFRobot:
         # Calculate the EE axes in space (in the base frame)
         self.EE = [self.ee.x, self.ee.y, self.ee.z]
         self.EE_axes = np.array([self.T_ee[:3, i] * 0.075 + self.points[-1][:3] for i in range(3)])
-
-
+        
     def update_DH_table(self):
         # updates the DH table to account for current
-        # theta positions on robot
+        # theta positions on robot. self.theta is in radians, fcn returns radians
         # returns nothing
 
         # construct DH table according to hand calculations
         # columns are: theta, alpha, a, d
-        self.DH[0, :] = [self.theta[0],      PI/2, 0,       self.l1]
-        self.DH[1, :] = [self.theta[1]+PI/2, PI,   self.l2, 0]
-        self.DH[2, :] = [self.theta[2],      PI,   self.l3, 0]
-        self.DH[3, :] = [self.theta[3]+PI/2, PI/2, 0,       0]
-        self.DH[4, :] = [self.theta[4],      0,    0,       self.l4 + self.l5]
+            self.DH[0, :] = [self.theta[0],      PI/2, 0,       self.l1]
+            self.DH[1, :] = [self.theta[1]+PI/2, PI,   self.l2, 0]
+            self.DH[2, :] = [self.theta[2],      PI,   self.l3, 0]
+            self.DH[3, :] = [self.theta[3]+PI/2, PI/2, 0,       0]
+            self.DH[4, :] = [self.theta[4],      0,    0,       self.l4 + self.l5]
+    
+    def DH_from_theta(self, theta:list):
+        # constrcuts the DH table from a provided list of angles
+        # passed as an argument. assumes theta is in radians, fcn returns radians
+        # returns the constructed DH table as a 5x4 array
+
+        # construct DH table according to hand calculations
+        # columns are: theta, alpha, a, d
+        dh_table = np.zeros((self.num_dof, 4))
+        
+        dh_table[0, :] = [theta[0],      PI/2, 0,       self.l1]
+        dh_table[1, :] = [theta[1]+PI/2, PI,   self.l2, 0]
+        dh_table[2, :] = [theta[2],      PI,   self.l3, 0]
+        dh_table[3, :] = [theta[3]+PI/2, PI/2, 0,       0]
+        dh_table[4, :] = [theta[4],      0,    0,       self.l4 + self.l5]
+
+        return dh_table
+
+temp = FiveDOFRobot()
+temp_vel = np.array([1, 2, 10])
+temp.calc_velocity_kinematics(temp_vel)

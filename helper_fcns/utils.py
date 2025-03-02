@@ -255,3 +255,4 @@ def near_zero(arr: np.ndarray) -> np.ndarray:
     """
     tol = 1e-6
     return np.where(np.isclose(arr, 0, atol=tol), 0, arr)
+
