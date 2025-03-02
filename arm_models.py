@@ -574,6 +574,7 @@ class FiveDOFRobot:
             # if values are in radians, then use as is
             theta_use = theta
 
+<<<<<<< HEAD
         # create DH table from the thetas (in radians) passed
         # as an argument
         DH_table = self.DH_from_theta(theta_use) # might have to pass self too?
@@ -582,6 +583,11 @@ class FiveDOFRobot:
         for i in range(self.num_dof):
             next_htm = dh_to_matrix(DH_table[i, :])
             htm_total = np.matmul(htm_total, next_htm)
+=======
+        # create transformation matrices from DH table
+        arr = self.DH[i,:]
+        arr.tolist()
+>>>>>>> 52443f4 (update current file)
 
         # well i found the cumulative H matrix 0H5, what do i do with it?????
 
