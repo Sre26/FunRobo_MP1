@@ -731,7 +731,97 @@ class FiveDOFRobot:
         # Calculate the EE axes in space (in the base frame)
         self.EE = [self.ee.x, self.ee.y, self.ee.z]
         self.EE_axes = np.array([self.T_ee[:3, i] * 0.075 + self.points[-1][:3] for i in range(3)])
+
+    def make_Jacobian_v(self, vel: list):
+        """ 
+        Computes the linear component of the Jacobian, Jacobian_v, via
+        the geometric approach. 
         
+        This is/can be used for J_inv @ vel = theta_dot where theta_dot are 
+        the joint velocities corresponding to vel, the desired EE velocity.
+
+        Args:
+            vel: Desired end-effector velocity (3x1 vector).
+        Returns:
+            Jacobian_v: the linear component of the Jacobian (3x5 matrix)
+        """
+        # -----------------------------------------------------
+        # PROCESS: the geometric process for calculating the  
+        # linear component of the jacobian is as follows:
+
+        # vel_EE = Jacobian_v @ theta_dot
+        # vel_EE = x_dot, y_dot, z_dot (dot indicates time deriv.)
+        # theta_dot is a vector of the time deriv. of each theta
+
+        # Jacobian_v = z_vec X r_vec (cross product)
+        
+        # z_vec is the z axis of the current joint in reference
+        # to Frame 0
+        # (z_vec calculated as z_0 @ R_0i, where z_0 is the z_axis at 
+        # frame 0 and R_0i is the rotation matrix from frame 0 to 
+        # frame i, extracted from the HTM 0Hi)
+
+        # r_vec is the distance from the current joint to the EE
+        # (r_vec calculated as r_EE - r_i, where r_EE is the dist. from
+        # joint 1 to the EE, and r_i is the dist from joint 1 to joint i)
+        # -----------------------------------------------------
+
+        # container for z vectors (all rotated relative to the Frame 0 z vector)
+        z_vec = np.zeros((self.num_dof+1, 3))    # create zeros array w/ #DOF+1 length, will hold all z vectors
+        z_0 = np.array([0, 0, 1])     # this is the z-axis in ref. to Frame 0
+        z_vec[0, :] = z_0      # set the first z vector to be z_0 as defined above
+
+        # update DH table to use current angles
+        # self.update_DH_table()
+        
+        # calculate my z vectors
+        for i in range(self.num_dof):  
+            # make HTM matrix from current row of interest
+            htm =  dh_to_matrix(self.DH[i, :])
+            # extract rotation matrix (top left 3x3) from the HTM
+            rotation_matrix = htm[0:3, 0:3]
+            # calc next z vector as the matrix multiplication of z_i and R_(i to i+1)
+            # is this right? the order?
+            z_vec[i+1, :] = np.matmul(z_vec[i], rotation_matrix)
+        
+        # create cumulative htm matrices (ie 0H1, 0H2, 0H3, ... 0H5)
+        cum_htm = np.zeros((self.num_dof, 4, 4))
+        cum_htm[0, :, :] = dh_to_matrix(self.DH[0, :])
+        for j in range(self.num_dof-1):
+            # is the order of this matrix multiplication correct? check above too ~647
+            prev_cum_htm = cum_htm[j, :, :]     # take prev cum_htm (ex 0H2)
+            next_htm = dh_to_matrix(self.DH[j+1, :])           # get next non-cum htm (ex 2H3) from DH table
+            
+            # calculate the next cum_htm by matrix multiplication  (ex 0H2 * 2H3 = 0H3) 
+            cum_htm[j+1, :, :] = np.matmul(prev_cum_htm, next_htm)
+        
+        # radius from base (Frame 0) to EE (Frame 5 in this case)
+        r_EE = cum_htm[-1, 0:3, 3]
+
+        # make an array of r_vectors
+        # zero array to store distance (3x1 vector) for each cumulative radius (ie 0-5, 1-5, ...) 
+        r_vec = np.zeros((3, self.num_dof))
+
+        r_vec[:, 0] = r_EE
+        for k in range(self.num_dof-1):
+            # compute new r vector (ex r1-5, r2-5, ...) as r_EE - r0-i 
+            # extract r0-i from the fourth column of the cumulative htm matrices
+            # be mindful that r_vec[0] = r_EE = r0-5, while cum_htm[0] = H0-1 -> r0-1 not r0-0
+            # so r_vec[0] - cum_htm[0, 0:2, 3] = r0-5 - r0-1 = r1-5 which is stored in r_vec[1]
+            r_vec[:, k+1] = r_EE - cum_htm[k, 0:3, 3]
+
+        print("well it ran so it can't be that fucked up")
+        # calculate the Jacobian terms
+
+        # container for the linear velocity component of the Jacobian 
+        J_v = np.zeros((3, self.num_dof))
+
+        for i1 in range(self.num_dof):
+            # column of J = z x r
+            J_v[:, i1] = np.cross(z_vec[i1, :], r_vec[:, i1])
+        return []
+
+
     def update_DH_table(self):
         # updates the DH table to account for current
         # theta positions on robot. self.theta is in radians, fcn returns radians
