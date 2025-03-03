@@ -565,11 +565,11 @@ class FiveDOFRobot:
         # container for successive transformation matrices (ie 2H3, 3H4, ...)
         self.T = np.stack(
             [
-                dh_to_matrix([self.DH[0, :]]),    # 0H1
-                dh_to_matrix([self.DH[1, :]]),    # 1H2
-                dh_to_matrix([self.DH[2, :]]),    # 2H3
-                dh_to_matrix([self.DH[3, :]]),    # 3H4
-                dh_to_matrix([self.DH[4, :]]),    # 4H5
+                dh_to_matrix([self.theta[0],       self.l1,            0,          PI/2]),  # 0H1
+                dh_to_matrix([self.theta[1]+PI/2,  0,                  self.l2,    PI]),    # 1H2
+                dh_to_matrix([self.theta[2],       0,                  self.l3,    PI]),    # 2H3
+                dh_to_matrix([self.theta[3]+PI/2,  0,                  0,          PI/2]),  # 3H4
+                dh_to_matrix([self.theta[4],       self.l4 + self.l5,  0,          0,]),    # 4H5
             ], axis=0)
         ########################################
 
