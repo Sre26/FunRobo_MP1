@@ -535,7 +535,7 @@ class FiveDOFRobot:
         self.l1, self.l2, self.l3, self.l4, self.l5 = 0.155, 0.099, 0.095, 0.055, 0.105
         
         # Joint angles (initialized to zero)
-        self.theta = [0, 90, 0, 0, 0]
+        self.theta = [0, 0, 0, 0, 0]
         
         # Joint limits (in radians)
         self.theta_limits = [
@@ -555,26 +555,23 @@ class FiveDOFRobot:
 
         # Denavit-Hartenberg parameters and transformation matrices
         self.DH = [
-            [self.theta[0],      PI/2, 0,       self.l1],           # 0H1
-            [self.theta[1]+PI/2, PI,   self.l2, 0],                 # 1H2
-            [self.theta[2],      PI,   self.l3, 0],                 # 2H3
-            [self.theta[3]+PI/2, PI/2, 0,       0],                 # 3H4
-            [self.theta[4],      0,    0,       self.l4 + self.l5], # 4H5
+            [self.theta[0], self.l1, 0, np.pi / 2],
+            [self.theta[1], 0, self.l2, np.pi],
+            [self.theta[2], 0, self.l3, np.pi],
+            [self.theta[3], 0, self.l4, -np.pi / 2],
+            [self.theta[4], self.l5, 0, 0],
         ]
-        
-        # container for successive transformation matrices (ie 2H3, 3H4, ...)
         self.T = np.stack(
             [
-                dh_to_matrix([self.theta[0],       self.l1,            0,          PI/2]),  # 0H1
-                dh_to_matrix([self.theta[1]+PI/2,  0,                  self.l2,    PI]),    # 1H2
-                dh_to_matrix([self.theta[2],       0,                  self.l3,    PI]),    # 2H3
-                dh_to_matrix([self.theta[3]+PI/2,  0,                  0,          PI/2]),  # 3H4
-                dh_to_matrix([self.theta[4],       self.l4 + self.l5,  0,          0,]),    # 4H5
-            ], axis=0)
-        ########################################
-
-        # insert your additional code here
-        self.cum_T = np.zeros((4, 4))
+                dh_to_matrix(self.DH[0]),
+                dh_to_matrix(self.DH[1]),
+                dh_to_matrix(self.DH[2]),
+                dh_to_matrix(self.DH[3]),
+                dh_to_matrix(self.DH[4]),
+            ],
+            axis=0,
+        )
+        self.J = np.zeros([5, 3])
 
         ########################################
 
@@ -598,17 +595,11 @@ class FiveDOFRobot:
             theta = theta * PI/180
 
         # update transformation matrices with the new theta vals
-        self.T[0, :, :] = dh_to_matrix([theta[0],       self.l1,            0,          PI/2])  # 0H1
-        self.T[1, :, :] = dh_to_matrix([theta[1]+PI/2,  0,                  self.l2,    PI])    # 1H2
-        self.T[2, :, :] = dh_to_matrix([theta[2],       0,                  self.l3,    PI])    # 2H3
-        self.T[3, :, :] = dh_to_matrix([theta[3]+PI/2,  0,                  0,          PI/2])  # 3H4
-        self.T[4, :, :] = dh_to_matrix([theta[4],       self.l4 + self.l5,  0,          0,])    # 4H5
-
-        #self.T[0, :, :] = dh_to_matrix([theta[0],      PI/2, 0,       self.l1])           # 0H1
-        #self.T[1, :, :] = dh_to_matrix([theta[1]+PI/2, PI,   self.l2, 0])                 # 1H2
-        #self.T[2, :, :] = dh_to_matrix([theta[2],      PI,   self.l3, 0])                 # 2H3
-        #self.T[3, :, :] = dh_to_matrix([theta[3]+PI/2, PI/2, 0,       0])                 # 3H4
-        #self.T[4, :, :] = dh_to_matrix([theta[4],      0,    0,       self.l4 + self.l5]) # 4H5
+        self.T[0, :, :] = dh_to_matrix([theta[0],      PI/2, 0,       self.l1])           # 0H1
+        self.T[1, :, :] = dh_to_matrix([theta[1]+PI/2, PI,   self.l2, 0])                 # 1H2
+        self.T[2, :, :] = dh_to_matrix([theta[2],      PI,   self.l3, 0])                 # 2H3
+        self.T[3, :, :] = dh_to_matrix([theta[3]+PI/2, PI/2, 0,       0])                 # 3H4
+        self.T[4, :, :] = dh_to_matrix([theta[4],      0,    0,       self.l4 + self.l5]) # 4H5
 
         # calc the cumulative H matrix 0H5 via matrix multiplication
         self.cum_T = self.T[0, :, :] @ self.T[1, :, :] @ self.T[2, :, :] @ self.T[3, :, :] @ self.T[4, :, :]
