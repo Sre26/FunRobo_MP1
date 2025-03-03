@@ -562,6 +562,7 @@ class FiveDOFRobot:
         ########################################
 
         # insert your additional code here
+        self.cum_T = np.zeros((4, 4))
 
         ########################################
 
@@ -581,21 +582,17 @@ class FiveDOFRobot:
         # check that theta values are in radians
         if radians == False:
             # if values arent in radians, then convert
-            theta_use = theta * (PI/180)
-        else:
-            # if values are in radians, then use as is
-            theta_use = theta
+            theta = [radians(angle) for angle in theta]
 
-        # create DH table from the thetas (in radians) passed
-        # as an argument
-        DH_table = self.DH_from_theta(theta_use) # might have to pass self too?
-        htm_total = np.eye(4)
+        # update transformation matrices with the new theta vals
+        self.T[0, :, :] = [theta[0],      PI/2, 0,       self.l1]           # 0H1
+        self.T[1, :, :] = [theta[1]+PI/2, PI,   self.l2, 0]                 # 1H2
+        self.T[2, :, :] = [theta[2],      PI,   self.l3, 0]                 # 2H3
+        self.T[3, :, :] = [theta[3]+PI/2, PI/2, 0,       0]                 # 3H4
+        self.T[4, :, :] = [theta[4],      0,    0,       self.l4 + self.l5] # 4H5
 
-        for i in range(self.num_dof):
-            next_htm = dh_to_matrix(DH_table[i, :])
-            htm_total = np.matmul(htm_total, next_htm)
-
-        # well i found the cumulative H matrix 0H5, what do i do with it?????
+        # calc the cumulative H matrix 0H5 via matrix multiplication
+        self.cum_T = self.T[0, :, :] @ self.T[1, :, :] @ self.T[2, :, :] @ self.T[3, :, :] @ self.T[4, :, :]
 
         ########################################
         
