@@ -570,12 +570,8 @@ class FiveDOFRobot:
                 dh_to_matrix([self.theta[2],       0,                  self.l3,    PI]),    # 2H3
                 dh_to_matrix([self.theta[3]+PI/2,  0,                  0,          PI/2]),  # 3H4
                 dh_to_matrix([self.theta[4],       self.l4 + self.l5,  0,          0,]),    # 4H5
+
             ], axis=0)
-        ########################################
-
-        # insert your additional code here
-
-        ########################################
 
     
     def calc_forward_kinematics(self, theta: list, radians=False):
@@ -586,8 +582,6 @@ class FiveDOFRobot:
             theta: List of joint angles (in degrees or radians).
             radians: Boolean flag to indicate if input angles are in radians.
         """
-        ########################################
-
         # update transformaiton matrices to use the thetas in args
 
         # check that theta values are in radians
@@ -603,8 +597,6 @@ class FiveDOFRobot:
         self.T[3, :, :] = dh_to_matrix([theta[3]+PI/2,  0,                  0,          PI/2])  # 3H4
         self.T[4, :, :] = dh_to_matrix([theta[4],       self.l4 + self.l5,  0,          0,])    # 4H5
 
-        ########################################
-        
         # Calculate robot points (positions of joints)
         self.calc_robot_points()
 
@@ -642,9 +634,6 @@ class FiveDOFRobot:
         Args:
             vel: Desired end-effector velocity (3x1 vector).
         """
-        ########################################
-        # insert your code here
-
         # calculate the jacobian for the desired EE velocity
         Jacobian_v = self.make_Jacobian_v(vel)
         
@@ -656,8 +645,6 @@ class FiveDOFRobot:
 
         # update self.theta
         self.theta = self.theta + (time_step * theta_dot)
-
-        ########################################
 
         # Recompute robot points based on updated joint angles
         self.calc_forward_kinematics(self.theta, radians=True)
@@ -691,7 +678,6 @@ class FiveDOFRobot:
         # Calculate the EE axes in space (in the base frame)
         self.EE = [self.ee.x, self.ee.y, self.ee.z]
         self.EE_axes = np.array([self.T_ee[:3, i] * 0.075 + self.points[-1][:3] for i in range(3)])
-
 
     def make_Jacobian_v(self, vel: list):
         """ 
@@ -760,38 +746,3 @@ class FiveDOFRobot:
             J_v[:, i1] = np.cross(z_vec[:, i1], r_vec[:, i1])
         
         return J_v
-
-
-    def update_DH_table(self):
-        # updates the DH table to account for current
-        # theta positions on robot. self.theta is in radians, fcn returns radians
-        # returns nothing
-
-        # construct DH table according to hand calculations
-        # columns are: theta, alpha, a, d
-            self.DH[0, :] = [self.theta[0],      PI/2, 0,       self.l1]
-            self.DH[1, :] = [self.theta[1]+PI/2, PI,   self.l2, 0]
-            self.DH[2, :] = [self.theta[2],      PI,   self.l3, 0]
-            self.DH[3, :] = [self.theta[3]+PI/2, PI/2, 0,       0]
-            self.DH[4, :] = [self.theta[4],      0,    0,       self.l4 + self.l5]
-    
-    def DH_from_theta(self, theta:list):
-        # constrcuts the DH table from a provided list of angles
-        # passed as an argument. assumes theta is in radians, fcn returns radians
-        # returns the constructed DH table as a 5x4 array
-
-        # construct DH table according to hand calculations
-        # columns are: theta, alpha, a, d
-        dh_table = np.zeros((self.num_dof, 4))
-        
-        dh_table[0, :] = [theta[0],      PI/2, 0,       self.l1]
-        dh_table[1, :] = [theta[1]+PI/2, PI,   self.l2, 0]
-        dh_table[2, :] = [theta[2],      PI,   self.l3, 0]
-        dh_table[3, :] = [theta[3]+PI/2, PI/2, 0,       0]
-        dh_table[4, :] = [theta[4],      0,    0,       self.l4 + self.l5]
-
-        return dh_table
-
-temp = FiveDOFRobot()
-temp_vel = np.array([1, 2, 10])
-temp.calc_velocity_kinematics(temp_vel)
