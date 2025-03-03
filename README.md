@@ -13,12 +13,18 @@ ___________________________________________________
 
 ### FPK on vis tool
 ___________________________________________________
+(steps for adding equations and connecting to vis tool)
+
 (video link to FPK)
 
 ### FVK/RRMC on vis tool
 ___________________________________________________
+(steps for adding equations and connecting to vis tool)
+
 (video link to FVK/RRMC)
 
 ### FVK/RRMC on robot
 ___________________________________________________
+(steps for connecting to robot)
+
 (video link to robot)
