@@ -1,7 +1,7 @@
 from math import sin, cos
 import numpy as np
 from matplotlib.figure import Figure
-from helper_fcns.utils import EndEffector, rotm_to_euler
+from helper_fcns.utils import EndEffector, rotm_to_euler, euler_to_rotm
 from helper_fcns.utils import dh_to_matrix
 
 PI = 3.1415926535897932384
@@ -272,7 +272,7 @@ class TwoDOFRobot():
 
     def calc_inverse_kinematics(self, EE: EndEffector, soln=0):
         """
-        Calculates the inverse kinematics (IK) for a given end effector position.
+        Calculates the inverse kinematics (IK) for a given end effector position. Update theta
 
         Args:
             EE (EndEffector): The end effector object containing the target position (x, y).
@@ -611,6 +611,19 @@ class FiveDOFRobot:
         """
         ########################################
 
+        # extract position and rotation from EE object
+        P_EE = np.array(EE.x, EE.y, EE.z)
+        EE_rpy = (EE.rotx, EE.roty, EE.rotz) 
+
+        # establish the distance from joint 4 to joint 6, d_6
+        d_6 = self.l4 + self.l5
+        # establish the z vector
+        z_vec = np.array([0, 0, 1])
+        
+        # compute P_wrist = P_EE - d_6 @ R_0_6 @ [0, 0, 1]
+        P_wrist = P_EE - d_6 * (euler_to_rotm(EE_rpy) @ z_vec)
+        
+        
         # insert your code here
 
         ########################################
