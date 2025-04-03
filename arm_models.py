@@ -609,11 +609,15 @@ class FiveDOFRobot:
             EE: EndEffector object containing desired position and orientation.
             soln: Optional parameter for multiple solutions (not implemented).
         """
+
+        x, y, z = EE.x, EE.y, EE.z
+        l1, l2, l3, l4, l5 = self.l1, self.l2, self.l3, self.l4, self.l5
+
         ########################################
 
         # extract position and rotation from EE object
-        P_EE = np.array(EE.x, EE.y, EE.z)
-        EE_rpy = (EE.rotx, EE.roty, EE.rotz) 
+        P_EE = np.array([EE.x, EE.y, EE.z])
+        EE_rpy = ([EE.rotx, EE.roty, EE.rotz]) 
 
         # establish the distance from joint 4 to joint 6, d_6
         d_6 = self.l4 + self.l5
@@ -622,7 +626,7 @@ class FiveDOFRobot:
         
         # compute P_wrist = P_EE - d_6 @ R_0_6 @ [0, 0, 1]
         P_wrist = P_EE - d_6 * (euler_to_rotm(EE_rpy) @ z_vec)
-        
+        return P_wrist
         
         # insert your code here
 
