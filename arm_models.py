@@ -612,19 +612,84 @@ class FiveDOFRobot:
         ########################################
 
         # extract position and rotation from EE object
-        P_EE = np.array(EE.x, EE.y, EE.z)
+        P_EE = np.array([EE.x, EE.y, EE.z])
         EE_rpy = (EE.rotx, EE.roty, EE.rotz) 
 
         # establish the distance from joint 4 to joint 6, d_6
+        # actually in our case i think it's 5, not 6
         d_6 = self.l4 + self.l5
         # establish the z vector
         z_vec = np.array([0, 0, 1])
         
-        # compute P_wrist = P_EE - d_6 @ R_0_6 @ [0, 0, 1]
+        # compute P_wrist = P_EE - d_6 * R0_6 @ [0, 0, 1]
         P_wrist = P_EE - d_6 * (euler_to_rotm(EE_rpy) @ z_vec)
+        print(P_wrist)
+
+        # unpack some useful variables
+        x_w, y_w, z_w = P_wrist[0], P_wrist[1], P_wrist[2]  # get xyz coordinates from P_wrist
+        l1, l2, l3 = self.l1, self.l2, self.l3              # get link lengths w/ shorter names
+
+        # find the height, width and length associated with the 
+        # specific "embedded" 2DOF case
+        z_2DOF = z_w - l1
+        x_2DOF = np.sqrt(x_w**2 + y_w**2)
+        L = np.sqrt(x_2DOF**2 + z_2DOF**2)
+        
+        # calculate thetas 1
+        theta1 = [np.arctan2(y_w, x_w), np.arctan2(y_w, x_w) + PI]
+
+        # calculate thetas 3
+        t3 = PI - np.acos((l1**2 + l2**2 - L**2)/(2*l1*l2))
+        theta3 = [t3, -t3]  # package the two options
+
+        # create container for all of the solutions
+        all_solns = np.zeros([8, 5])
+
+        # populate all combinations of the thetas 1-3
+        i = 0
+        for ang1 in theta1:
+            for ang3 in theta3:
+                # calculate thetas 2
+                gamma = np.arctan2(z_2DOF, x_2DOF)
+                alpha = np.arctan2((l2*sin(ang3)), (l1 + l2*cos(ang3)) )
+                theta2 = [PI/2 - (gamma - alpha), PI/2 + (gamma - alpha)]
+                
+                for ang2 in theta2:
+                    # compute 3R6 as 0R3.T @ 0R6
+                    # in our case I think it might be 5, not 6
+                    R0_1 = dh_to_matrix([ang1,       self.l1,   0,          PI/2])[0:3, 0:3]  
+                    R1_2 = dh_to_matrix([ang2+PI/2,  0,         self.l2,    PI])[0:3, 0:3]      
+                    R2_3 = dh_to_matrix([ang3,       0,         self.l3,    PI])[0:3, 0:3]
+
+                    R0_3 = R0_1 @ R1_2 @ R2_3
+                    R3_5 = R0_3.T @ euler_to_rotm(EE_rpy)
+
+                    # find theta4 and theta 5
+                    theta4 = np.arctan2(R3_5[1, 2], R3_5[0, 2])
+                    theta5 = np.arctan2(R3_5[2, 1], R3_5[2, 0])
+
+                    # store answer
+                    all_solns[i][0:3] = [ang1, ang2, ang3, theta4, theta5]
+                    i = i+1     # increment index
+
+        # find the valid solutions
+        valid_rows = np.ones([8])
+
+        # loop through the columns (cols are sorted by theta)
+        for col in range(all_solns.shape[1]):
+            # get the theta limits for the colum
+            low_lim = self.theta_limits[0]
+            up_lim = self.theta_limits[1]
+
+            # check the solutions
+            for ang in all_solns[:, col]:
+                if ang < low_lim or ang > up_lim:
+                    pass
+
         
         
-        # insert your code here
+
+
 
         ########################################
 
@@ -691,6 +756,7 @@ class FiveDOFRobot:
         # Calculate the EE axes in space (in the base frame)
         self.EE = [self.ee.x, self.ee.y, self.ee.z]
         self.EE_axes = np.array([self.T_ee[:3, i] * 0.075 + self.points[-1][:3] for i in range(3)])
+
 
     def make_Jacobian_v(self, vel: list):
         """ 
@@ -759,3 +825,5 @@ class FiveDOFRobot:
             J_v[:, i1] = np.cross(z_vec[:, i1], r_vec[:, i1])
         
         return J_v
+    
+
