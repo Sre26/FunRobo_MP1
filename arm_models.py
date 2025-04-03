@@ -673,7 +673,7 @@ class FiveDOFRobot:
                     i = i+1     # increment index
 
         # find the valid solutions
-        valid_rows = np.ones([8])
+        valid_rows = np.ones([8]).astype(bool)  # boolean container for valid solns (by row)
 
         # loop through the columns (cols are sorted by theta)
         for col in range(all_solns.shape[1]):
@@ -681,7 +681,15 @@ class FiveDOFRobot:
             low_lim = self.theta_limits[0]
             up_lim = self.theta_limits[1]
 
-            
+            # isolate column
+            thetas = all_solns[:, col]
+
+            # check against theta limits
+            bool_ans = ~((thetas < low_lim) + (thetas > up_lim))
+            # update valid rows
+            valid_rows = np.logical_and(valid_rows, bool_ans)
+
+        
 
         
         
@@ -814,3 +822,25 @@ class FiveDOFRobot:
             J_v[:, i1] = np.cross(z_vec[:, i1], r_vec[:, i1])
         
         return J_v
+    def calc_numerical_ik(self, EE: EndEffector, tol=0.01, ilimit=50):
+        """ Calculate numerical inverse kinematics based on input coordinates. 
+         Args:
+            EE (EndEffector): The end effector object containing the target position (x, y).
+            tol (float, optional): The tolerance for the solution. Defaults to 0.01.
+            ilimit (int, optional): The maximum number of iterations. Defaults to 50.
+        """
+
+        x_d = np.array([EE.x, EE.y, EE.z]) #generalized pos vector
+        
+        ########################################
+        theta = self.theta
+        for i in range(ilimit):
+            f_k = self.calc_forward_kinematics(theta) #try with both degrees and radians
+            e = x_d - f_k
+            print(e)
+
+            if np.linalg.norm(e) > tol:
+                theta += np.pinv(make_Jacobian_v(e))
+
+        ########################################
+        self.calc_forward_kinematics(self.theta, radians=True)
