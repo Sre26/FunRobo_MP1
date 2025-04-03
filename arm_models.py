@@ -629,15 +629,7 @@ class FiveDOFRobot:
         ########################################
 
 
-    def calc_numerical_ik(self, EE: EndEffector, tol=0.01, ilimit=50):
-        """ Calculate numerical inverse kinematics based on input coordinates. """
-        
-        ########################################
 
-        # insert your code here
-
-        ########################################
-        self.calc_forward_kinematics(self.theta, radians=True)
 
     
     def calc_velocity_kinematics(self, vel: list):
@@ -759,3 +751,25 @@ class FiveDOFRobot:
             J_v[:, i1] = np.cross(z_vec[:, i1], r_vec[:, i1])
         
         return J_v
+    def calc_numerical_ik(self, EE: EndEffector, tol=0.01, ilimit=50):
+        """ Calculate numerical inverse kinematics based on input coordinates. 
+         Args:
+            EE (EndEffector): The end effector object containing the target position (x, y).
+            tol (float, optional): The tolerance for the solution. Defaults to 0.01.
+            ilimit (int, optional): The maximum number of iterations. Defaults to 50.
+        """
+
+        x_d = np.array([EE.x, EE.y, EE.z]) #generalized pos vector
+        
+        ########################################
+        theta = self.theta
+        for i in range(ilimit):
+            f_k = self.calc_forward_kinematics(theta) #try with both degrees and radians
+            e = x_d - f_k
+            print(e)
+
+            if np.linalg.norm(e) > tol:
+                theta += np.pinv(make_Jacobian_v(e))
+
+        ########################################
+        self.calc_forward_kinematics(self.theta, radians=True)
