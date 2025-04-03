@@ -681,10 +681,7 @@ class FiveDOFRobot:
             low_lim = self.theta_limits[0]
             up_lim = self.theta_limits[1]
 
-            # check the solutions
-            for ang in all_solns[:, col]:
-                if ang < low_lim or ang > up_lim:
-                    pass
+            
 
         
         
