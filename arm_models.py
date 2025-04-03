@@ -691,15 +691,7 @@ class FiveDOFRobot:
         ########################################
 
 
-    def calc_numerical_ik(self, EE: EndEffector, tol=0.01, ilimit=50):
-        """ Calculate numerical inverse kinematics based on input coordinates. """
-        
-        ########################################
 
-        # insert your code here
-
-        ########################################
-        self.calc_forward_kinematics(self.theta, radians=True)
 
     
     def calc_velocity_kinematics(self, vel: list):
@@ -822,5 +814,3 @@ class FiveDOFRobot:
             J_v[:, i1] = np.cross(z_vec[:, i1], r_vec[:, i1])
         
         return J_v
-    
-
