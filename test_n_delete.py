@@ -13,3 +13,6 @@ print(log_ans2)
 t2 = np.ones([7]).astype(bool)
 x = np.logical_and(t2,log_ans2)
 print(x)
+
+temp_solns = np.array([[1, 2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7]])
+print(temp_solns)
