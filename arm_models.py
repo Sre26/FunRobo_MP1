@@ -833,7 +833,7 @@ class FiveDOFRobot:
         x_d = np.array([EE.x, EE.y, EE.z]) #generalized pos vector
         
         ########################################
-        theta = self.theta
+        theta = self.theta.copy()
         for i in range(ilimit):
             f_k = self.calc_forward_kinematics(theta) #try with both degrees and radians
             e = x_d - f_k
