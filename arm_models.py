@@ -684,7 +684,7 @@ class FiveDOFRobot:
                     theta5 = np.arctan2(R3_5[2, 1], R3_5[2, 0])
 
                     # store answer
-                    all_solns[i][0:3] = [ang1, ang2, ang3, theta4, theta5]
+                    all_solns[i][0:5] = [ang1, ang2, ang3, theta4, theta5]
                     i = i+1     # increment index
 
         # find the valid solutions
@@ -692,19 +692,21 @@ class FiveDOFRobot:
 
         # loop through the columns (cols are sorted by theta)
         for col in range(all_solns.shape[1]):
+            
             # get the theta limits for the colum
-            low_lim = self.theta_limits[0]
-            up_lim = self.theta_limits[1]
+            low_lim = self.theta_limits[col][0]
+            up_lim = self.theta_limits[col][1]
 
             # isolate column
             thetas = all_solns[:, col]
 
             # check against theta limits
-            bool_ans = ~((thetas < low_lim) + (thetas > up_lim))
+            bool_ans = np.logical_and((thetas >= low_lim), (thetas <= up_lim))
+
             # update valid rows
             valid_rows = np.logical_and(valid_rows, bool_ans)
 
-        
+        print("valid rows 712 ", valid_rows)
 
 
 
