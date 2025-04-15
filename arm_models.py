@@ -630,10 +630,6 @@ class FiveDOFRobot:
         # Calculate the robot points by applying the cumulative transformations
         points_EE = T_cumulative[5] @ points
 
-        # Calculate EE position and rotation
-        # self.EE_axes = T_cumulative[-1] @ np.array([0.075, 0.075, 0.075, 1])  # End-effector axes
-        # self.T_ee = T_cumulative[-1]  # Final transformation matrix for EE
-
         # return the end effector (EE) position
         return points_EE[:3]
 
@@ -681,7 +677,7 @@ class FiveDOFRobot:
 
         
         # fit acos input to [-1, 1]
-        acos_input = (l1**2 + l2**2 - L**2)/(2*l1*l2)
+        acos_input = (l2**2 + l3**2 - L**2)/(2*l2*l3)
         if acos_input > 1:
             acos_input = 1
         elif acos_input < -1:
@@ -700,7 +696,7 @@ class FiveDOFRobot:
             for ang3 in theta3:
                 # calculate thetas 2
                 gamma = np.arctan2(z_2DOF, x_2DOF)
-                alpha = np.arctan2((l2*sin(ang3)), (l1 + l2*cos(ang3)) )
+                alpha = np.arctan2((l2*sin(-ang3)), (l1 + l2*cos(-ang3)) )
                 theta2 = [PI/2 - (gamma - alpha), PI/2 + (gamma - alpha)]
                 
                 for ang2 in theta2:
@@ -907,14 +903,17 @@ class FiveDOFRobot:
         
         ########################################
         theta = self.theta.copy()
+        LAMBDA = 0.02
         for i in range(ilimit):
-            f_k = self.calc_forward_kinematics(theta) #try with both degrees and radians
+            f_k = self.test_FK(theta) #try with both degrees and radians
             e = x_d - f_k
-            print(e)
+            #print(e)
 
             if np.linalg.norm(e) > tol:
-                theta += np.pinv(self.make_Jacobian_v(e))
+                J = self.make_Jacobian_v(e)
+                J_inv_d =  np.transpose(J) @ np.linalg.inv(((J @ J.T) + LAMBDA**2 * np.eye(3)))
+                theta += J_inv_d @ e
 
         ########################################
-        self.calc_forward_kinematics(self.theta, radians=True)
+        self.calc_robot_points()
 
