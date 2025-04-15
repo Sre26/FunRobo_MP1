@@ -602,6 +602,41 @@ class FiveDOFRobot:
 
         # Calculate robot points (positions of joints)
         self.calc_robot_points()
+    
+    def test_FK(self, theta: list):
+        # do i have to convert to radians? 
+
+        # container of successive transformation matrices (ie 2H3, 3H4, ...)
+        T_matrices = np.stack(
+            [
+                dh_to_matrix([theta[0],       self.l1,            0,          PI/2]),  # 0H1
+                dh_to_matrix([theta[1]+PI/2,  0,                  self.l2,    PI]),    # 1H2
+                dh_to_matrix([theta[2],       0,                  self.l3,    PI]),    # 2H3
+                dh_to_matrix([theta[3]+PI/2,  0,                  0,          PI/2]),  # 3H4
+                dh_to_matrix([theta[4],       self.l4 + self.l5,  0,          0,]),    # 4H5
+
+            ], axis=0)
+
+        # borrowed and slightly modified from calc_robot_points()
+
+        # Initialize points[0] to the base (origin)
+        self.points[0] = np.array([0, 0, 0, 1])
+
+        # Precompute cumulative transformations to avoid redundant calculations
+        T_cumulative = [np.eye(4)]
+        for i in range(self.num_dof):
+            T_cumulative.append(T_cumulative[-1] @ T_matrices[i])
+
+        # Calculate the robot points by applying the cumulative transformations
+        for i in range(1, 6):
+            self.points[i] = T_cumulative[i] @ self.points[0]
+
+        # Calculate EE position and rotation
+        self.EE_axes = T_cumulative[-1] @ np.array([0.075, 0.075, 0.075, 1])  # End-effector axes
+        self.T_ee = T_cumulative[-1]  # Final transformation matrix for EE
+
+        # return the end effector (EE) position
+        return self.points[-1][:3]
 
 
     def calc_inverse_kinematics(self, EE: EndEffector, soln=0):
@@ -707,8 +742,20 @@ class FiveDOFRobot:
             valid_rows = np.logical_and(valid_rows, bool_ans)
 
         # check forawrd kinematics for all valid rows
-        
-        
+        valid_FK = np.ones([8]).astype(bool)  # boolean container for valid FK (by row)
+        e = 0.01    # acceptable error
+
+        for row in range(all_solns.shape[0]):
+            theta_input = all_solns[row]
+            P_EE_calc = test_FK(theta_input)
+
+            if np.linalg.norm(P_EE_calc - P_EE) > e:
+                valid_FK[row] = False
+
+        # update valid rows to only include solns that pass
+        # theta limits AND the FK test
+        valid_rows = np.logical_and(valid_rows, valid_FK)
+
         # return error messgae if on valid solns
         if sum(valid_rows.astype(int)) == 0:
             return "Error: There are no valid analytical solutions"
@@ -723,14 +770,7 @@ class FiveDOFRobot:
 
         # return array of valid solutions
         return final_solns
-
-        
-        print("valid rows 712 ", valid_rows)
-        print("theta lims ", self.theta_limits)
-        print("all solns ", all_solns)
-
-
-
+    
         ########################################
 
     
