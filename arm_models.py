@@ -617,11 +617,7 @@ class FiveDOFRobot:
 
         # extract position and rotation from EE object
         P_EE = np.array([EE.x, EE.y, EE.z])
-<<<<<<< HEAD
-        EE_rpy = ([EE.rotx, EE.roty, EE.rotz]) 
-=======
         EE_rpy = (EE.rotx, EE.roty, EE.rotz) 
->>>>>>> 14b6a13879d347f482bccd74dbaf84d2785fa1e5
 
         # establish the distance from joint 4 to joint 6, d_6
         # actually in our case i think it's 5, not 6
@@ -631,10 +627,7 @@ class FiveDOFRobot:
         
         # compute P_wrist = P_EE - d_6 * R0_6 @ [0, 0, 1]
         P_wrist = P_EE - d_6 * (euler_to_rotm(EE_rpy) @ z_vec)
-<<<<<<< HEAD
-        return P_wrist
-=======
-        print(P_wrist)
+        # print(P_wrist)
 
         # unpack some useful variables
         x_w, y_w, z_w = P_wrist[0], P_wrist[1], P_wrist[2]  # get xyz coordinates from P_wrist
@@ -702,16 +695,9 @@ class FiveDOFRobot:
 
         
 
-        
->>>>>>> 14b6a13879d347f482bccd74dbaf84d2785fa1e5
-        
-
 
 
         ########################################
-
-
-
 
     
     def calc_velocity_kinematics(self, vel: list):
@@ -834,6 +820,8 @@ class FiveDOFRobot:
             J_v[:, i1] = np.cross(z_vec[:, i1], r_vec[:, i1])
         
         return J_v
+    
+
     def calc_numerical_ik(self, EE: EndEffector, tol=0.01, ilimit=50):
         """ Calculate numerical inverse kinematics based on input coordinates. 
          Args:
@@ -852,7 +840,8 @@ class FiveDOFRobot:
             print(e)
 
             if np.linalg.norm(e) > tol:
-                theta += np.pinv(make_Jacobian_v(e))
+                theta += np.pinv(self.make_Jacobian_v(e))
 
         ########################################
         self.calc_forward_kinematics(self.theta, radians=True)
+
