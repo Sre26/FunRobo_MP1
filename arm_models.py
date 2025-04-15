@@ -620,7 +620,7 @@ class FiveDOFRobot:
         # borrowed and slightly modified from calc_robot_points()
 
         # Initialize points[0] to the base (origin)
-        self.points[0] = np.array([0, 0, 0, 1])
+        points = np.array([0, 0, 0, 1])
 
         # Precompute cumulative transformations to avoid redundant calculations
         T_cumulative = [np.eye(4)]
@@ -628,15 +628,14 @@ class FiveDOFRobot:
             T_cumulative.append(T_cumulative[-1] @ T_matrices[i])
 
         # Calculate the robot points by applying the cumulative transformations
-        for i in range(1, 6):
-            self.points[i] = T_cumulative[i] @ self.points[0]
+        points_EE = T_cumulative[5] @ points
 
         # Calculate EE position and rotation
-        self.EE_axes = T_cumulative[-1] @ np.array([0.075, 0.075, 0.075, 1])  # End-effector axes
-        self.T_ee = T_cumulative[-1]  # Final transformation matrix for EE
+        # self.EE_axes = T_cumulative[-1] @ np.array([0.075, 0.075, 0.075, 1])  # End-effector axes
+        # self.T_ee = T_cumulative[-1]  # Final transformation matrix for EE
 
         # return the end effector (EE) position
-        return self.points[-1][:3]
+        return points_EE[:3]
 
 
     def calc_inverse_kinematics(self, EE: EndEffector, soln=0):
@@ -747,7 +746,7 @@ class FiveDOFRobot:
 
         for row in range(all_solns.shape[0]):
             theta_input = all_solns[row]
-            P_EE_calc = test_FK(theta_input)
+            P_EE_calc = self.test_FK(theta_input)
 
             if np.linalg.norm(P_EE_calc - P_EE) > e:
                 valid_FK[row] = False
