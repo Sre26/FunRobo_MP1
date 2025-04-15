@@ -597,6 +597,9 @@ class FiveDOFRobot:
         self.T[3, :, :] = dh_to_matrix([theta[3]+PI/2,  0,                  0,          PI/2])  # 3H4
         self.T[4, :, :] = dh_to_matrix([theta[4],       self.l4 + self.l5,  0,          0,])    # 4H5
 
+        # update the robot joint angles
+        self.theta = theta
+
         # Calculate robot points (positions of joints)
         self.calc_robot_points()
 
@@ -642,8 +645,16 @@ class FiveDOFRobot:
         # calculate thetas 1
         theta1 = [np.arctan2(y_w, x_w), np.arctan2(y_w, x_w) + PI]
 
+        
+        # fit acos input to [-1, 1]
+        acos_input = (l1**2 + l2**2 - L**2)/(2*l1*l2)
+        if acos_input > 1:
+            acos_input = 1
+        elif acos_input < -1:
+            acos_input = -1
+
         # calculate thetas 3
-        t3 = PI - np.acos((l1**2 + l2**2 - L**2)/(2*l1*l2))
+        t3 = PI - np.acos(acos_input)
         theta3 = [t3, -t3]  # package the two options
 
         # create container for all of the solutions
