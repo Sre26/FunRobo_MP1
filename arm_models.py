@@ -764,7 +764,7 @@ class FiveDOFRobot:
                 soln_counter = soln_counter + 1
 
         # return array of valid solutions
-        return final_solns
+        self.theta = final_solns[0]
     
         ########################################
 
