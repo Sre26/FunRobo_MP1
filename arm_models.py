@@ -706,7 +706,28 @@ class FiveDOFRobot:
             # update valid rows
             valid_rows = np.logical_and(valid_rows, bool_ans)
 
+        # check forawrd kinematics for all valid rows
+        
+        
+        # return error messgae if on valid solns
+        if sum(valid_rows.astype(int)) == 0:
+            return "Error: There are no valid analytical solutions"
+
+        # compose array of all fully valid solution s
+        final_solns = np.array([sum(valid_rows.astype(int)), 5])
+        soln_counter = 0
+        for j in range(8):
+            if valid_rows[j]:
+                final_solns[soln_counter] = all_solns[j]
+                soln_counter = soln_counter + 1
+
+        # return array of valid solutions
+        return final_solns
+
+        
         print("valid rows 712 ", valid_rows)
+        print("theta lims ", self.theta_limits)
+        print("all solns ", all_solns)
 
 
 
